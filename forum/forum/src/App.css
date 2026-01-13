@@ -23,7 +23,6 @@
   --hover-bg: #222836;
 }
 
-/* Base layout */
 * {
   box-sizing: border-box;
   color: var(--text-primary);
@@ -39,7 +38,6 @@ html, body, #root {
   overflow-x: hidden;
 }
 
-/* Fixed header */
 header {
   position: fixed;
   z-index: 999;
@@ -57,7 +55,6 @@ header {
   border-bottom: 1px solid var(--border-default);
 }
 
-/* Header areas */
 .head-left, .head-middle, .head-right {
   display: flex;
   align-items: center;
@@ -68,7 +65,14 @@ header {
 .head-middle { width: 50%; justify-content: center; }
 .head-right { width: 25%; justify-content: flex-end; gap: 8px; }
 
-/* Buttons inside header */
+/* Logo */
+.logo {
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--accent-primary);
+  font-size: 18px;
+}
+
 header button {
   font-size: 15px;
   height: 40px;
@@ -85,7 +89,6 @@ header button:hover {
   border-color: var(--border-default);
 }
 
-/* Search / input styles */
 .search, .input-area, .confirm-area {
   padding: 8px 16px;
   display: flex;
@@ -115,14 +118,16 @@ header button:hover {
   color: var(--search-placeholder);
 }
 
-/* App content - leave space for fixed header */
 .App {
   padding-top: calc(6vh + 20px);
   min-height: 100vh;
   width: 100%;
 }
 
-/* Auth forms */
+.content {
+  padding: 20px;
+}
+
 .reg {
   display: flex;
   flex-direction: column;
@@ -131,6 +136,10 @@ header button:hover {
   justify-content: center;
   height: calc(100vh - 6vh);
   padding-top: 6vh;
+}
+
+.error-text {
+  color: #FF8A8A;
 }
 
 .reg input[type="text"],
@@ -165,7 +174,10 @@ textarea {
   top: 6vh;
 }
 
-/* Group create inputs */
+.groups-header {
+  margin: 0 0 12px 0;
+}
+
 .group-inputs {
   display: flex;
   gap: 12px;
@@ -192,7 +204,6 @@ textarea {
   color: var(--text-primary);
 }
 
-/* Create button */
 .create-btn, .submit {
   background-color: transparent;
   border: 1px solid var(--border-input);
@@ -212,12 +223,12 @@ textarea {
   transform: translateY(1px);
 }
 
-/* Groups list */
 .groups-list {
   margin-top: 16px;
   display: grid;
   gap: 12px;
   grid-template-columns: 1fr 1fr;
+  padding: 0;
 }
 
 .groups-list li {
@@ -228,14 +239,34 @@ textarea {
   border-radius: 10px;
 }
 
-/* Post view */
+.group-title {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+.group-bio {
+  margin: 6px 0;
+  color: var(--text-secondary);
+}
+
+.group-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .post-area {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-/* Create post inputs */
+.posts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
 .post-creator {
   display: flex;
   flex-direction: column;
@@ -243,16 +274,10 @@ textarea {
   margin: 12px 0;
 }
 
-.post-creator input[type="text"],
-.post-creator textarea {
-  background-color: var(--search-bg);
-  border: 1px solid var(--border-input);
-  padding: 10px 12px;
-  border-radius: 8px;
-  color: var(--text-primary);
+.creator-actions {
+  margin-top: 4px;
 }
 
-/* Post card */
 .post-card {
   background-color: var(--bg-elevated);
   border: 1px solid var(--border-default);
@@ -273,7 +298,6 @@ textarea {
   line-height: 1.45;
 }
 
-/* Post meta (author, date) */
 .post-meta {
   display: flex;
   gap: 12px;
@@ -283,7 +307,12 @@ textarea {
   margin-top: 6px;
 }
 
-/* Comments list */
+.post-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 .comments {
   margin-top: 10px;
   padding-left: 8px;
@@ -300,10 +329,15 @@ textarea {
   border-radius: 6px;
 }
 
+.comment-view, .comment-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .comment-author {
   font-weight: 600;
   color: var(--text-primary);
-  margin-right: 8px;
   font-size: 13px;
 }
 
@@ -313,7 +347,11 @@ textarea {
   font-size: 14px;
 }
 
-/* Add comment area */
+.comment-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .comment-input-row {
   display: flex;
   gap: 8px;
@@ -321,7 +359,7 @@ textarea {
   align-items: center;
 }
 
-.comment-input-row input[type="text"] {
+.comment-input-row input[type="text"], .comment-input-row input {
   flex: 1;
   background-color: var(--search-bg);
   border: 1px solid var(--border-input);
@@ -349,7 +387,6 @@ textarea {
   cursor: pointer;
 }
 
-/* Utilities */
 .small {
   font-size: 12px;
   color: var(--text-muted);
@@ -361,7 +398,6 @@ textarea {
   align-items: center;
 }
 
-/* Responsive tweaks */
 @media (max-width: 900px) {
   .groups-list {
     grid-template-columns: 1fr;

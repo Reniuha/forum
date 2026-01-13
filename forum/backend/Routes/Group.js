@@ -3,6 +3,7 @@ const { Group, Post, Comment } = require('../Models/Group');
 const authenticate = require('../Middleware/Authenticate');
 const router = express.Router();
 
+// Create group
 router.post('/groups', authenticate, async (req, res) => {
   const { groupName, serverBio } = req.body;
 
@@ -32,6 +33,7 @@ router.get('/groups', async (req, res) => {
   }
 });
 
+// Join group
 router.post('/groups/:groupId/join', authenticate, async (req, res) => {
   try {
     const groupId = req.params.groupId;
@@ -52,6 +54,8 @@ router.post('/groups/:groupId/join', authenticate, async (req, res) => {
   }
 });
 
+// GET /groups/:groupId/posts
+// Return posts with author and comments (comments.user) populated
 router.get('/groups/:groupId/posts', async (req, res) => {
   const { groupId } = req.params;
 
@@ -84,9 +88,11 @@ router.get('/groups/:groupId/posts', async (req, res) => {
   }
 });
 
+// POST /groups/:groupId/posts/:postId/comments
 router.post('/groups/:groupId/posts/:postId/comments', authenticate, async (req, res) => {
   const { groupId, postId } = req.params;
   const userId = req.user.userId;
+  // accept either { body } or { text }
   const { body, text } = req.body;
   const commentBody = body || text;
 
@@ -108,12 +114,13 @@ router.post('/groups/:groupId/posts/:postId/comments', authenticate, async (req,
 
     await comment.save();
 
+    // populate user info from DB to ensure username/name is present in response
     await comment.populate({ path: 'user', select: 'username name' });
 
     res.status(201).json({
       _id: comment._id,
       body: comment.body,
-      user: comment.user,
+      user: comment.user, // will be { _id, username?, name? }
       createdAt: comment.createdAt,
       post: comment.post
     });
@@ -123,6 +130,7 @@ router.post('/groups/:groupId/posts/:postId/comments', authenticate, async (req,
   }
 });
 
+// EDIT a comment
 router.put('/groups/:groupId/posts/:postId/comments/:commentId', authenticate, async (req, res) => {
   const { groupId, postId, commentId } = req.params;
   const userId = req.user.userId;
@@ -155,6 +163,7 @@ router.put('/groups/:groupId/posts/:postId/comments/:commentId', authenticate, a
   }
 });
 
+// DELETE a comment
 router.delete('/groups/:groupId/posts/:postId/comments/:commentId', authenticate, async (req, res) => {
   const { groupId, postId, commentId } = req.params;
   const userId = req.user.userId;
@@ -164,6 +173,7 @@ router.delete('/groups/:groupId/posts/:postId/comments/:commentId', authenticate
     if (!comment) return res.status(404).json({ message: 'Comment not found' });
     if (comment.post.toString() !== postId) return res.status(400).json({ message: 'Comment does not belong to this post' });
 
+    // allow deletion by comment owner or group creator
     const group = await Group.findById(groupId);
     if (!group) return res.status(404).json({ message: 'Group not found' });
 
@@ -172,7 +182,8 @@ router.delete('/groups/:groupId/posts/:postId/comments/:commentId', authenticate
 
     if (!isOwner && !isGroupCreator) return res.status(403).json({ message: 'Not allowed to delete this comment' });
 
-    await comment.remove();
+    // Use model-level delete to avoid relying on document.remove()
+    await Comment.deleteOne({ _id: commentId });
 
     res.status(200).json({ message: 'Comment deleted', commentId });
   } catch (err) {
@@ -181,6 +192,7 @@ router.delete('/groups/:groupId/posts/:postId/comments/:commentId', authenticate
   }
 });
 
+// EDIT a post
 router.put('/groups/:groupId/posts/:postId', authenticate, async (req, res) => {
   const { groupId, postId } = req.params;
   const userId = req.user.userId;
@@ -213,6 +225,7 @@ router.put('/groups/:groupId/posts/:postId', authenticate, async (req, res) => {
   }
 });
 
+// DELETE a post (and its comments)
 router.delete('/groups/:groupId/posts/:postId', authenticate, async (req, res) => {
   const { groupId, postId } = req.params;
   const userId = req.user.userId;
@@ -225,14 +238,17 @@ router.delete('/groups/:groupId/posts/:postId', authenticate, async (req, res) =
     const group = await Group.findById(groupId);
     if (!group) return res.status(404).json({ message: 'Group not found' });
 
+    // allow deletion by post author or group creator
     const isOwner = post.author.toString() === userId;
     const isGroupCreator = group.creator.toString() === userId;
 
     if (!isOwner && !isGroupCreator) return res.status(403).json({ message: 'Not allowed to delete this post' });
 
+    // remove comments linked to this post
     await Comment.deleteMany({ post: postId });
 
-    await post.remove();
+    // Use model-level delete to remove the post
+    await Post.deleteOne({ _id: postId });
 
     res.status(200).json({ message: 'Post deleted', postId });
   } catch (err) {
@@ -241,6 +257,7 @@ router.delete('/groups/:groupId/posts/:postId', authenticate, async (req, res) =
   }
 });
 
+// POST /groups/:groupId/posts
 router.post('/groups/:groupId/posts', authenticate, async (req, res) => {
   const { groupId } = req.params;
   const { title, content } = req.body;
