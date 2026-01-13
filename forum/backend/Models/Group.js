@@ -14,7 +14,6 @@ const postSchema = new mongoose.Schema({
   author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });
 
-// Virtual to expose comments on a post so populate('comments') works
 postSchema.virtual('comments', {
   ref: 'Comment',
   localField: '_id',
@@ -22,7 +21,6 @@ postSchema.virtual('comments', {
   justOne: false
 });
 
-// Ensure virtuals are included when converting documents to JSON / objects
 postSchema.set('toObject', { virtuals: true });
 postSchema.set('toJSON', { virtuals: true });
 
@@ -32,7 +30,6 @@ const commentSchema = new mongoose.Schema({
   body: { type: String, required: true, trim: true }
 }, { timestamps: true });
 
-// export models
 module.exports = {
   Group: mongoose.model('Group', groupSchema),
   Post: mongoose.model('Post', postSchema),

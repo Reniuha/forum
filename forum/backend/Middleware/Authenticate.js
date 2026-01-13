@@ -10,7 +10,6 @@ function authenticate(req, res, next) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // 🔥 Extract only userId
     req.user = { userId: decoded.userId };
 
     next();

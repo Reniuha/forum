@@ -1,10 +1,8 @@
 const express = require('express');
 const { Group, Post, Comment } = require('../Models/Group');
-const User = require('../Models/User'); // make sure this path matches your project
 const authenticate = require('../Middleware/Authenticate');
 const router = express.Router();
 
-// Create group
 router.post('/groups', authenticate, async (req, res) => {
   const { groupName, serverBio } = req.body;
 
@@ -34,7 +32,6 @@ router.get('/groups', async (req, res) => {
   }
 });
 
-// Join group
 router.post('/groups/:groupId/join', authenticate, async (req, res) => {
   try {
     const groupId = req.params.groupId;
@@ -55,8 +52,6 @@ router.post('/groups/:groupId/join', authenticate, async (req, res) => {
   }
 });
 
-// GET /groups/:groupId/posts
-// Return posts with author and comments (comments.user) populated
 router.get('/groups/:groupId/posts', async (req, res) => {
   const { groupId } = req.params;
 
@@ -89,11 +84,9 @@ router.get('/groups/:groupId/posts', async (req, res) => {
   }
 });
 
-// POST /groups/:groupId/posts/:postId/comments
 router.post('/groups/:groupId/posts/:postId/comments', authenticate, async (req, res) => {
   const { groupId, postId } = req.params;
   const userId = req.user.userId;
-  // accept either { body } or { text }
   const { body, text } = req.body;
   const commentBody = body || text;
 
@@ -115,14 +108,14 @@ router.post('/groups/:groupId/posts/:postId/comments', authenticate, async (req,
 
     await comment.save();
 
-    // populate user info from DB to ensure username/name is present in response
     await comment.populate({ path: 'user', select: 'username name' });
 
     res.status(201).json({
       _id: comment._id,
       body: comment.body,
-      user: comment.user, // will be { _id, username?, name? }
-      createdAt: comment.createdAt
+      user: comment.user,
+      createdAt: comment.createdAt,
+      post: comment.post
     });
   } catch (err) {
     console.error("Error adding comment:", err);
@@ -130,7 +123,124 @@ router.post('/groups/:groupId/posts/:postId/comments', authenticate, async (req,
   }
 });
 
-// POST /groups/:groupId/posts
+router.put('/groups/:groupId/posts/:postId/comments/:commentId', authenticate, async (req, res) => {
+  const { groupId, postId, commentId } = req.params;
+  const userId = req.user.userId;
+  const { body, text } = req.body;
+  const commentBody = body || text;
+
+  if (!commentBody) return res.status(400).json({ message: 'Comment body is required' });
+
+  try {
+    const comment = await Comment.findById(commentId);
+    if (!comment) return res.status(404).json({ message: 'Comment not found' });
+    if (comment.post.toString() !== postId) return res.status(400).json({ message: 'Comment does not belong to this post' });
+    if (comment.user.toString() !== userId) return res.status(403).json({ message: 'Not allowed to edit this comment' });
+
+    comment.body = commentBody;
+    await comment.save();
+
+    await comment.populate({ path: 'user', select: 'username name' });
+
+    res.status(200).json({
+      _id: comment._id,
+      body: comment.body,
+      user: comment.user,
+      createdAt: comment.createdAt,
+      post: comment.post
+    });
+  } catch (err) {
+    console.error('Error editing comment:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.delete('/groups/:groupId/posts/:postId/comments/:commentId', authenticate, async (req, res) => {
+  const { groupId, postId, commentId } = req.params;
+  const userId = req.user.userId;
+
+  try {
+    const comment = await Comment.findById(commentId);
+    if (!comment) return res.status(404).json({ message: 'Comment not found' });
+    if (comment.post.toString() !== postId) return res.status(400).json({ message: 'Comment does not belong to this post' });
+
+    const group = await Group.findById(groupId);
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+
+    const isOwner = comment.user.toString() === userId;
+    const isGroupCreator = group.creator.toString() === userId;
+
+    if (!isOwner && !isGroupCreator) return res.status(403).json({ message: 'Not allowed to delete this comment' });
+
+    await comment.remove();
+
+    res.status(200).json({ message: 'Comment deleted', commentId });
+  } catch (err) {
+    console.error('Error deleting comment:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.put('/groups/:groupId/posts/:postId', authenticate, async (req, res) => {
+  const { groupId, postId } = req.params;
+  const userId = req.user.userId;
+  const { title, content } = req.body;
+
+  if (!title && !content) return res.status(400).json({ message: 'Title or content required to update' });
+
+  try {
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    if (post.group.toString() !== groupId) return res.status(400).json({ message: 'Post does not belong to this group' });
+    if (post.author.toString() !== userId) return res.status(403).json({ message: 'Not allowed to edit this post' });
+
+    if (title) post.title = title;
+    if (content) post.content = content;
+    await post.save();
+
+    await post.populate({ path: 'author', select: 'username name' });
+
+    res.status(200).json({
+      _id: post._id,
+      title: post.title,
+      content: post.content,
+      author: post.author,
+      createdAt: post.createdAt
+    });
+  } catch (err) {
+    console.error('Error editing post:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.delete('/groups/:groupId/posts/:postId', authenticate, async (req, res) => {
+  const { groupId, postId } = req.params;
+  const userId = req.user.userId;
+
+  try {
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    if (post.group.toString() !== groupId) return res.status(400).json({ message: 'Post does not belong to this group' });
+
+    const group = await Group.findById(groupId);
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+
+    const isOwner = post.author.toString() === userId;
+    const isGroupCreator = group.creator.toString() === userId;
+
+    if (!isOwner && !isGroupCreator) return res.status(403).json({ message: 'Not allowed to delete this post' });
+
+    await Comment.deleteMany({ post: postId });
+
+    await post.remove();
+
+    res.status(200).json({ message: 'Post deleted', postId });
+  } catch (err) {
+    console.error('Error deleting post:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 router.post('/groups/:groupId/posts', authenticate, async (req, res) => {
   const { groupId } = req.params;
   const { title, content } = req.body;
@@ -152,11 +262,13 @@ router.post('/groups/:groupId/posts', authenticate, async (req, res) => {
 
     await newPost.save();
 
+    await newPost.populate({ path: 'author', select: 'username name' });
+
     res.status(201).json({
       _id: newPost._id,
       title: newPost.title,
       content: newPost.content,
-      author: { _id: req.user.userId, username: req.user.username || null },
+      author: { _id: newPost.author._id, username: newPost.author.username || null, name: newPost.author.name || null },
       createdAt: newPost.createdAt
     });
   } catch (err) {

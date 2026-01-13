@@ -28,7 +28,7 @@ app.get('/', (req, res) => {
 
 async function connect() {
     try {
-        // Try connect to MongoDB
+        // Connect to MongoDB
         await mongoose.connect(process.env.DB_URL)
         console.log('MongoDB works perfectly')
         
@@ -37,7 +37,6 @@ async function connect() {
             console.log(`Server is running on http://localhost:${port}`)
         })
     } catch (err) {
-        // if DB connection fails
         console.error('Failed to connect to MongoDB');
         console.log(err)
         process.exit(1)
